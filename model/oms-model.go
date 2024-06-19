@@ -85,3 +85,54 @@ func (ctl *ATAEvent) GetAll() error {
 	err = db.Model(&ATA{}).Preload("Equipments").Find(&ctl.ATAList).Count(&ctl.Total).Error
 	return err
 }
+
+type EquipmentEvent struct {
+	Equipment
+	EquipmentList []Equipment `json:"equipment_list"`
+}
+
+type PartEvent struct {
+	Part
+	PartList []Part `json:"part_list"`
+}
+
+func (ctl *EquipmentEvent) GetListByEquipment(id int) error {
+	err = db.Preload("Parts").Where("ID = ?", id).First(&ctl.Equipment).Error
+	return err
+}
+
+type LoadATAEquipmentParam struct {
+	EquipmentID uint   `json:"equipment_id"`
+	PartlistId  []uint `json:"partlist_id"`
+}
+
+type PartLoadLogEvent struct {
+	Equipment
+	Part Part
+	PartLoadLog
+	RelEquipmentPart     RelEquipmentPart
+	RelEquipmentPartList []RelEquipmentPart
+	EquipmentList        []Equipment
+	PartList             []Part        `json:"part_list"`
+	PartLoadLogList      []PartLoadLog `json:"part_load_log_list"`
+}
+
+func (ctl *PartLoadLogEvent) SaveLog(data LoadATAEquipmentParam) error {
+	err := db.Model(&RelEquipmentPart{}).Where("equipment_id = ?", data.EquipmentID).Where("part_id in (?)", data.PartlistId).Find(&ctl.RelEquipmentPartList).Error
+	for _, v := range ctl.RelEquipmentPartList {
+		db.Create(&PartLoadLog{
+			RelEquipmentPartID: v.ID,
+			LoadStatus:         "Loading",
+			LoadProgress:       0,
+			StartTime:          time.Now(),
+			ElapsedTime:        0,
+			Detail:             "Loading",
+		})
+	}
+	return err
+}
+
+func (ctl *PartLoadLogEvent) GetAll() error {
+	err = db.Model(&PartLoadLog{}).Preload("RelEquipmentPart").Preload("RelEquipmentPart.Equipment").Preload("RelEquipmentPart.Part").Find(&ctl.PartLoadLogList).Error
+	return err
+}

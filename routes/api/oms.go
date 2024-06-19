@@ -14,5 +14,8 @@ func RegisterOMSRouter(r *gin.Engine) {
 	{
 		// 用户模块的路由接口
 		auth.GET("/ata_selection", v1.GetATASelection)
+		auth.GET("/part_selection", v1.GetPartSelection)
+		auth.POST("/load-ATA-equipment", v1.LoadATAEquipment)
+		auth.GET("/all_load_status", v1.GetAllLoadStatus)
 	}
 }
