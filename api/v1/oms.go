@@ -36,8 +36,7 @@ func GetPartSelection(c *gin.Context) {
 func LoadATAEquipment(c *gin.Context) {
 	var data model.LoadATAEquipmentParam
 	_ = c.ShouldBindJSON(&data)
-	var ctl model.PartLoadLogEvent
-	if err := ctl.SaveLog(data); err != nil {
+	if err := model.SaveLog(data); err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, err.Error())
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -46,13 +45,13 @@ func LoadATAEquipment(c *gin.Context) {
 	})
 }
 
-func GetAllLoadStatus(c *gin.Context){
+func GetAllLoadStatus(c *gin.Context) {
 	var ctl model.PartLoadLogEvent
-	if err := ctl.GetAll(); err != nil {
+	if err := GetAllLog(); err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, err.Error())
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"code":   http.StatusOK,
-		"result": ctl.PartLoadLogList,
+		"result": ctl.PartLoadLogOutput,
 	})
 }

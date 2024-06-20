@@ -107,19 +107,13 @@ type LoadATAEquipmentParam struct {
 }
 
 type PartLoadLogEvent struct {
-	Equipment
-	Part Part
-	PartLoadLog
-	RelEquipmentPart     RelEquipmentPart
-	RelEquipmentPartList []RelEquipmentPart
-	EquipmentList        []Equipment
-	PartList             []Part        `json:"part_list"`
-	PartLoadLogList      []PartLoadLog `json:"part_load_log_list"`
+	PartLoadLogOutput []PartLoadLogOutput
 }
 
-func (ctl *PartLoadLogEvent) SaveLog(data LoadATAEquipmentParam) error {
-	err := db.Model(&RelEquipmentPart{}).Where("equipment_id = ?", data.EquipmentID).Where("part_id in (?)", data.PartlistId).Find(&ctl.RelEquipmentPartList).Error
-	for _, v := range ctl.RelEquipmentPartList {
+func SaveLog(data LoadATAEquipmentParam) error {
+	var rel_equipment_part_list []RelEquipmentPart
+	err := db.Model(&RelEquipmentPart{}).Where("equipment_id = ?", data.EquipmentID).Where("part_id in (?)", data.PartlistId).Find(&rel_equipment_part_list).Error
+	for _, v := range rel_equipment_part_list {
 		db.Create(&PartLoadLog{
 			RelEquipmentPartID: v.ID,
 			LoadStatus:         "Loading",
@@ -132,7 +126,22 @@ func (ctl *PartLoadLogEvent) SaveLog(data LoadATAEquipmentParam) error {
 	return err
 }
 
-func (ctl *PartLoadLogEvent) GetAll() error {
-	err = db.Model(&PartLoadLog{}).Preload("RelEquipmentPart").Preload("RelEquipmentPart.Equipment").Preload("RelEquipmentPart.Part").Find(&ctl.PartLoadLogList).Error
-	return err
+type PartLoadLogOutput struct {
+	PartLoadLog
+	RelEquipmentPart RelEquipmentPart `json:"rel_equipment_part"`
+	Equipment        Equipment        `json:"equipment"`
+	Part             Part             `json:"part"`
+}
+
+func GetAllLog() error {
+	var ctl PartLoadLogEvent
+	err = db.Model(&PartLoadLog{}).Preload("RelEquipmentPart").Find(&ctl.PartLoadLogOutput).Error
+	for i, v := range ctl.PartLoadLogOutput {
+		var rel_equipment_part RelEquipmentPart
+		db.Where("id = ?", v.RelEquipmentPartID).First(&rel_equipment_part)
+		ctl.PartLoadLogOutput[i].RelEquipmentPart = rel_equipment_part
+		// err = db.Model(&Equipment{}).Where("id = ?", ctl.PartLoadLogOutput[i].RelEquipmentPart.EquipmentID).First(&ctl.PartLoadLogOutput[i].Equipment).Error
+		// err = db.Model(&Part{}).Where("id = ?", ctl.PartLoadLogOutput[i].RelEquipmentPart.PartID).First(&ctl.PartLoadLogOutput[i].Part).Error
+	}
+	return ctl
 }
